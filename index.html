@@ -204,10 +204,9 @@
       font-weight: 600;
     }
 
-    .new-badge {
+    .new-badge,
+    .resigned-badge {
       display: inline-block;
-      background: #ffcc00;
-      color: #000;
       font-size: 0.6rem;
       font-weight: 900;
       padding: 2px 5px;
@@ -215,6 +214,119 @@
       margin-right: 6px;
       vertical-align: middle;
       line-height: 1;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+
+    .new-badge {
+      background: #ffcc00;
+      color: #000;
+    }
+
+    .resigned-badge {
+      background: #4dd4ff;
+      color: #00111a;
+    }
+
+    .editable-row {
+      align-items: stretch;
+    }
+
+    .editable-row.is-editing .entry-view,
+    .editable-row:not(.is-editing) .entry-editor {
+      display: none;
+    }
+
+    .entry-view {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .entry-editor {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 78px 108px;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .entry-editor.name-only {
+      grid-template-columns: minmax(0, 1fr) 108px;
+    }
+
+    .panel .entry-editor,
+    .panel .entry-editor.name-only {
+      grid-template-columns: 1fr;
+    }
+
+    .editor-input,
+    .editor-select,
+    .edit-button {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      outline: none;
+      padding: 8px 9px;
+      transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .editor-input::placeholder {
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+
+    .editor-input:focus,
+    .editor-select:focus,
+    .edit-button:focus {
+      border-color: rgba(234, 0, 41, 0.66);
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 0 0 3px rgba(234, 0, 41, 0.13);
+    }
+
+    .editor-select {
+      appearance: none;
+      color: var(--text-sub);
+      cursor: pointer;
+    }
+
+    .editor-select.is-new {
+      border-color: rgba(255, 204, 0, 0.65);
+      color: #ffcc00;
+    }
+
+    .editor-select.is-resigned {
+      border-color: rgba(77, 212, 255, 0.65);
+      color: #4dd4ff;
+    }
+
+    .edit-button {
+      flex: 0 0 auto;
+      width: auto;
+      color: var(--text-dim);
+      font-size: 0.72rem;
+      padding: 6px 8px;
+      cursor: pointer;
+    }
+
+    .edit-button:hover {
+      color: var(--white);
+      border-color: rgba(234, 0, 41, 0.42);
+    }
+
+    .empty-slot {
+      color: var(--text-dim);
+      font-size: 0.78rem;
+      font-weight: 600;
+      line-height: 1.25;
     }
 
 
@@ -452,7 +564,7 @@
 
     .pos-box {
       position: absolute;
-      width: 124px;
+      width: 148px;
       padding: 10px;
       background: rgba(6, 20, 31, 0.9);
       border: 1px solid rgba(255, 255, 255, 0.12);
@@ -475,10 +587,23 @@
     }
 
     .depth-player {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-width: 0;
       font-size: 0.84rem;
       margin-bottom: 5px;
       line-height: 1.25;
       font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .depth-player .new-badge,
+    .depth-player .resigned-badge {
+      margin-right: 2px;
+      font-size: 0.52rem;
+      padding: 2px 4px;
     }
 
     .depth-player:first-child {
@@ -542,7 +667,7 @@
       }
 
       .pos-box {
-        width: 112px;
+        width: 132px;
         padding: 8px;
       }
 
@@ -552,7 +677,13 @@
       }
 
       .depth-player {
-        font-size: 0.76rem;
+        font-size: 0.72rem;
+      }
+
+      .depth-player .new-badge,
+      .depth-player .resigned-badge {
+        font-size: 0.48rem;
+        padding: 2px 3px;
       }
 
       .p-box-1B { right: 3%; }
