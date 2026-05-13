@@ -956,10 +956,66 @@
       const groupEl = document.createElement('div');
       groupEl.className = 'list-group';
 
-      const title = document.createElement('div');
-      title.className = 'list-title';
-      title.textContent = group.role;
-      groupEl.appendChild(title);
+    const saveValue = (key, value) => {
+      savedState[key] = value;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedState));
+    };
+
+    const normalizePosition = value => {
+      const trimmed = value.trim();
+      const upper = trimmed.toUpperCase();
+      return POSITION_ALIASES[trimmed] || upper;
+    };
+
+    const createInput = (key, placeholder, onChange) => {
+      const input = document.createElement('input');
+      input.className = 'editor-input';
+      input.type = 'text';
+      input.placeholder = placeholder;
+      input.autocomplete = 'off';
+      input.value = savedState[key] || '';
+      input.addEventListener('input', event => {
+        saveValue(key, event.target.value);
+        onChange?.();
+      });
+      return input;
+    };
+
+    const updateStatusSelectClass = select => {
+      select.classList.toggle('is-new', select.value === 'new');
+      select.classList.toggle('is-resigned', select.value === 'resigned');
+    };
+
+    const createStatusSelect = (key, onChange) => {
+      const select = document.createElement('select');
+      select.className = 'editor-select';
+      select.setAttribute('aria-label', '선수 상태');
+
+      statusOptions.forEach(option => {
+        const optionEl = document.createElement('option');
+        optionEl.value = option.value;
+        optionEl.textContent = option.label;
+        select.appendChild(optionEl);
+      });
+
+      select.value = savedState[key] || '';
+      updateStatusSelectClass(select);
+      select.addEventListener('change', event => {
+        saveValue(key, event.target.value);
+        updateStatusSelectClass(select);
+        onChange?.();
+      });
+      return select;
+    };
+
+    const createStatusBadge = status => {
+      if (!status) return null;
+
+      const badge = document.createElement('span');
+      badge.className = status === 'new' ? 'new-badge' : 'resigned-badge';
+      badge.textContent = status === 'new' ? 'NEW' : 'RE-SIGNED';
+      return badge;
+    };
 
       Array.from({ length: group.count }).forEach((_, slotIndex) => {
         const slotNo = slotIndex + 1;
@@ -973,9 +1029,12 @@
           namePlaceholder: `${group.placeholder} ${slotNo}`
         }));
       });
+    };
 
-      pitchingContainer.appendChild(groupEl);
-    });
+    const refreshLineupLinkedViews = () => {
+      refreshFieldFromLineup();
+      refreshDhFromLineup();
+    };
 
     const lineupContainer = document.getElementById('starting-lineup');
     Array.from({ length: data.lineupCount }).forEach((_, slotIndex) => {
