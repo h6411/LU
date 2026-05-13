@@ -329,21 +329,6 @@
       line-height: 1.25;
     }
 
-
-
-    .resigned-badge {
-      display: inline-block;
-      background: #4dd4ff;
-      color: #00111a;
-      font-size: 0.6rem;
-      font-weight: 900;
-      padding: 2px 5px;
-      border-radius: 4px;
-      margin-right: 6px;
-      vertical-align: middle;
-      line-height: 1;
-    }
-
     .editable-row {
       align-items: stretch;
     }
@@ -606,11 +591,11 @@
       padding: 2px 4px;
     }
 
-    .depth-player:first-child {
+    .depth-player.starter-depth {
       color: var(--white);
     }
 
-    .depth-player:not(:first-child) {
+    .depth-player.bench-depth {
       color: var(--text-sub);
       font-weight: 600;
     }
@@ -881,16 +866,32 @@
       .map(row => ({ ...getRowValues(row.keys), order: row.order }))
       .filter(player => player.name && player.position);
 
+    const getBenchValues = () => rows
+      .filter(row => row.type === 'bench')
+      .map(row => getRowValues(row.keys))
+      .filter(player => player.name && player.position);
+
+    const appendDepthPlayer = (box, player, depthClass) => {
+      const item = document.createElement('div');
+      item.className = `depth-player ${depthClass}`;
+      const badge = createStatusBadge(player.status);
+      if (badge) item.appendChild(badge);
+      item.append(player.name);
+      box.appendChild(item);
+    };
+
     const refreshFieldFromLineup = () => {
       const lineup = getLineupValues();
+      const bench = getBenchValues();
 
       FIELD_POSITIONS.forEach(pos => {
         const box = document.querySelector(`#pos-${pos} .players`);
         if (!box) return;
         box.textContent = '';
 
-        const players = lineup.filter(player => normalizePosition(player.position) === pos);
-        if (!players.length) {
+        const starters = lineup.filter(player => normalizePosition(player.position) === pos);
+        const reserves = bench.filter(player => normalizePosition(player.position) === pos);
+        if (!starters.length && !reserves.length) {
           const empty = document.createElement('div');
           empty.className = 'empty-slot';
           empty.textContent = '라인업 입력 대기';
@@ -898,14 +899,8 @@
           return;
         }
 
-        players.forEach(player => {
-          const item = document.createElement('div');
-          item.className = 'depth-player';
-          const badge = createStatusBadge(player.status);
-          if (badge) item.appendChild(badge);
-          item.append(player.name);
-          box.appendChild(item);
-        });
+        starters.forEach(player => appendDepthPlayer(box, player, 'starter-depth'));
+        reserves.forEach(player => appendDepthPlayer(box, player, 'bench-depth'));
       });
     };
 
@@ -1085,7 +1080,8 @@
           status: `bench-${slotIndex}-status`
         },
         namePlaceholder: `벤치 ${slotNo}`,
-        positionPlaceholder: '포지션'
+        positionPlaceholder: '포지션',
+        onChange: refreshLineupLinkedViews
       }));
     });
     dhContainer.appendChild(benchGroup);
