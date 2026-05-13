@@ -329,6 +329,107 @@
       line-height: 1.25;
     }
 
+    .editable-row {
+      align-items: stretch;
+    }
+
+    .editable-row.is-editing .entry-view,
+    .editable-row:not(.is-editing) .entry-editor {
+      display: none;
+    }
+
+    .entry-view {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .entry-editor {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 78px 108px;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .entry-editor.name-only {
+      grid-template-columns: minmax(0, 1fr) 108px;
+    }
+
+    .panel .entry-editor,
+    .panel .entry-editor.name-only {
+      grid-template-columns: 1fr;
+    }
+
+    .editor-input,
+    .editor-select,
+    .edit-button {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      outline: none;
+      padding: 8px 9px;
+      transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .editor-input::placeholder {
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+
+    .editor-input:focus,
+    .editor-select:focus,
+    .edit-button:focus {
+      border-color: rgba(234, 0, 41, 0.66);
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 0 0 3px rgba(234, 0, 41, 0.13);
+    }
+
+    .editor-select {
+      appearance: none;
+      color: var(--text-sub);
+      cursor: pointer;
+    }
+
+    .editor-select.is-new {
+      border-color: rgba(255, 204, 0, 0.65);
+      color: #ffcc00;
+    }
+
+    .editor-select.is-resigned {
+      border-color: rgba(77, 212, 255, 0.65);
+      color: #4dd4ff;
+    }
+
+    .edit-button {
+      flex: 0 0 auto;
+      width: auto;
+      color: var(--text-dim);
+      font-size: 0.72rem;
+      padding: 6px 8px;
+      cursor: pointer;
+    }
+
+    .edit-button:hover {
+      color: var(--white);
+      border-color: rgba(234, 0, 41, 0.42);
+    }
+
+    .empty-slot {
+      color: var(--text-dim);
+      font-size: 0.78rem;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+
     .field-panel {
       background:
         linear-gradient(180deg, rgba(10, 18, 28, 0.98) 0%, rgba(6, 20, 31, 0.98) 100%);
