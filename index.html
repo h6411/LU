@@ -232,24 +232,38 @@
       line-height: 1;
     }
 
-    .editor-row {
+    .editable-row {
       align-items: stretch;
     }
 
-    .editor-fields {
+    .editable-row.is-editing .entry-view,
+    .editable-row:not(.is-editing) .entry-editor {
+      display: none;
+    }
+
+    .entry-view {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .entry-editor {
       flex: 1;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 78px 96px;
+      grid-template-columns: minmax(0, 1fr) 78px 108px;
       gap: 6px;
       align-items: center;
     }
 
-    .editor-fields.name-only {
-      grid-template-columns: minmax(0, 1fr) 96px;
+    .entry-editor.name-only {
+      grid-template-columns: minmax(0, 1fr) 108px;
     }
 
     .editor-input,
-    .editor-select {
+    .editor-select,
+    .edit-button {
       width: 100%;
       min-width: 0;
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -270,7 +284,8 @@
     }
 
     .editor-input:focus,
-    .editor-select:focus {
+    .editor-select:focus,
+    .edit-button:focus {
       border-color: rgba(234, 0, 41, 0.66);
       background: rgba(255, 255, 255, 0.1);
       box-shadow: 0 0 0 3px rgba(234, 0, 41, 0.13);
@@ -292,18 +307,25 @@
       color: #4dd4ff;
     }
 
-    .field-slot {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 66px;
-      gap: 5px;
-      margin-bottom: 6px;
+    .edit-button {
+      flex: 0 0 auto;
+      width: auto;
+      color: var(--text-dim);
+      font-size: 0.72rem;
+      padding: 6px 8px;
+      cursor: pointer;
     }
 
-    .field-slot .editor-input,
-    .field-slot .editor-select {
-      font-size: 0.72rem;
-      padding: 7px 7px;
-      border-radius: 8px;
+    .edit-button:hover {
+      color: var(--white);
+      border-color: rgba(234, 0, 41, 0.42);
+    }
+
+    .empty-slot {
+      color: var(--text-dim);
+      font-size: 0.78rem;
+      font-weight: 600;
+      line-height: 1.25;
     }
 
     .field-panel {
@@ -519,12 +541,8 @@
         padding: 8px;
       }
 
-      .editor-fields,
-      .editor-fields.name-only {
-        grid-template-columns: 1fr;
-      }
-
-      .field-slot {
+      .entry-editor,
+      .entry-editor.name-only {
         grid-template-columns: 1fr;
       }
 
@@ -595,6 +613,21 @@
 
   <script>
     const STORAGE_KEY = 'kia-tigers-2080-lineup-editor';
+    const FIELD_POSITIONS = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF'];
+    const POSITION_ALIASES = {
+      '포수': 'C',
+      '1루': '1B',
+      '1루수': '1B',
+      '2루': '2B',
+      '2루수': '2B',
+      '3루': '3B',
+      '3루수': '3B',
+      '유격수': 'SS',
+      '좌익수': 'LF',
+      '중견수': 'CF',
+      '우익수': 'RF',
+      '지명타자': 'DH'
+    };
 
     const data = {
       pitchers: [
@@ -604,58 +637,54 @@
         { role: "SU (셋업)", count: 1, label: "P", placeholder: "셋업" },
         { role: "CL (마무리)", count: 1, label: "P", placeholder: "마무리" }
       ],
-      fieldDepth: {
-        "C": 2,
-        "1B": 2,
-        "2B": 2,
-        "3B": 2,
-        "SS": 2,
-        "LF": 2,
-        "CF": 2,
-        "RF": 2
-      },
-      dhBench: [
-        { role: "DH (지명타자)", count: 1, label: "DH", placeholder: "지명타자" },
-        { role: "Bench (벤치)", count: 8, label: "B", placeholder: "벤치" }
-      ],
-      lineupCount: 9
+      lineupCount: 9,
+      benchCount: 5
     };
 
-    const badgeOptions = [
-      { value: '', label: '딱지 없음' },
+    const statusOptions = [
+      { value: '', label: '상태 없음' },
       { value: 'new', label: 'NEW' },
       { value: 'resigned', label: 'RE-SIGNED' }
     ];
 
     const savedState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-
+    const rows = [];
     const saveValue = (key, value) => {
       savedState[key] = value;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(savedState));
     };
 
-    const createInput = (key, placeholder) => {
+    const normalizePosition = value => {
+      const trimmed = value.trim();
+      const upper = trimmed.toUpperCase();
+      return POSITION_ALIASES[trimmed] || upper;
+    };
+
+    const createInput = (key, placeholder, onChange) => {
       const input = document.createElement('input');
       input.className = 'editor-input';
       input.type = 'text';
       input.placeholder = placeholder;
       input.autocomplete = 'off';
       input.value = savedState[key] || '';
-      input.addEventListener('input', event => saveValue(key, event.target.value));
+      input.addEventListener('input', event => {
+        saveValue(key, event.target.value);
+        onChange?.();
+      });
       return input;
     };
 
-    const updateBadgeSelectClass = select => {
+    const updateStatusSelectClass = select => {
       select.classList.toggle('is-new', select.value === 'new');
       select.classList.toggle('is-resigned', select.value === 'resigned');
     };
 
-    const createBadgeSelect = key => {
+    const createStatusSelect = (key, onChange) => {
       const select = document.createElement('select');
       select.className = 'editor-select';
-      select.setAttribute('aria-label', '선수 상태 딱지');
+      select.setAttribute('aria-label', '선수 상태');
 
-      badgeOptions.forEach(option => {
+      statusOptions.forEach(option => {
         const optionEl = document.createElement('option');
         optionEl.value = option.value;
         optionEl.textContent = option.label;
@@ -663,32 +692,184 @@
       });
 
       select.value = savedState[key] || '';
-      updateBadgeSelectClass(select);
+      updateStatusSelectClass(select);
       select.addEventListener('change', event => {
         saveValue(key, event.target.value);
-        updateBadgeSelectClass(select);
+        updateStatusSelectClass(select);
+        onChange?.();
       });
       return select;
     };
 
-    const createEditorRow = ({ label, nameKey, badgeKey, positionKey, namePlaceholder, positionPlaceholder }) => {
+    const createStatusBadge = status => {
+      if (!status) return null;
+
+      const badge = document.createElement('span');
+      badge.className = status === 'new' ? 'new-badge' : 'resigned-badge';
+      badge.textContent = status === 'new' ? 'NEW' : 'RE-SIGNED';
+      return badge;
+    };
+
+    const getRowValues = keys => ({
+      name: (savedState[keys.name] || '').trim(),
+      position: keys.position ? (savedState[keys.position] || '').trim() : '',
+      status: savedState[keys.status] || ''
+    });
+
+    const fillPlayerName = (container, values) => {
+      container.textContent = '';
+      const badge = createStatusBadge(values.status);
+      if (badge) container.appendChild(badge);
+      container.append(values.name);
+      if (values.position) {
+        const pos = document.createElement('span');
+        pos.className = 'sub-pos';
+        pos.textContent = `(${values.position})`;
+        container.appendChild(pos);
+      }
+    };
+
+    const refreshRow = row => {
+      const values = getRowValues(row.keys);
+      const isComplete = values.name && (!row.keys.position || values.position);
+      row.item.classList.toggle('is-editing', row.isEditing || !isComplete);
+      if (!isComplete) return;
+      fillPlayerName(row.nameEl, values);
+    };
+
+    const refreshAllRows = () => rows.forEach(refreshRow);
+
+    const getLineupValues = () => rows
+      .filter(row => row.type === 'lineup')
+      .map(row => ({ ...getRowValues(row.keys), order: row.order }))
+      .filter(player => player.name && player.position);
+
+    const refreshFieldFromLineup = () => {
+      const lineup = getLineupValues();
+
+      FIELD_POSITIONS.forEach(pos => {
+        const box = document.querySelector(`#pos-${pos} .players`);
+        if (!box) return;
+        box.textContent = '';
+
+        const players = lineup.filter(player => normalizePosition(player.position) === pos);
+        if (!players.length) {
+          const empty = document.createElement('div');
+          empty.className = 'empty-slot';
+          empty.textContent = '라인업 입력 대기';
+          box.appendChild(empty);
+          return;
+        }
+
+        players.forEach(player => {
+          const item = document.createElement('div');
+          item.className = 'depth-player';
+          const badge = createStatusBadge(player.status);
+          if (badge) item.appendChild(badge);
+          item.append(player.name);
+          box.appendChild(item);
+        });
+      });
+    };
+
+    const refreshDhFromLineup = () => {
+      const dhContainer = document.getElementById('dh-auto');
+      if (!dhContainer) return;
+      dhContainer.textContent = '';
+
+      const dhPlayers = getLineupValues().filter(player => normalizePosition(player.position) === 'DH');
+      if (!dhPlayers.length) {
+        const empty = document.createElement('div');
+        empty.className = 'player-item';
+        const message = document.createElement('span');
+        message.className = 'player-name';
+        message.style.textAlign = 'left';
+        message.style.color = 'var(--text-dim)';
+        message.textContent = '타선에서 포지션을 DH로 입력하면 자동 반영됩니다';
+        empty.appendChild(message);
+        dhContainer.appendChild(empty);
+        return;
+      }
+
+      dhPlayers.forEach(player => {
+        const item = document.createElement('div');
+        item.className = 'player-item';
+
+        const label = document.createElement('span');
+        label.className = 'player-pos';
+        label.textContent = 'DH';
+        item.appendChild(label);
+
+        const name = document.createElement('span');
+        name.className = 'player-name';
+        fillPlayerName(name, player);
+        item.appendChild(name);
+        dhContainer.appendChild(item);
+      });
+    };
+
+    const refreshLineupLinkedViews = () => {
+      refreshFieldFromLineup();
+      refreshDhFromLineup();
+    };
+
+    const createEditableRow = ({ type, label, order, keys, namePlaceholder, positionPlaceholder, onChange }) => {
       const item = document.createElement('div');
-      item.className = 'player-item editor-row';
+      item.className = 'player-item editable-row';
 
       const labelEl = document.createElement('span');
       labelEl.className = 'player-pos';
       labelEl.textContent = label;
       item.appendChild(labelEl);
 
-      const fields = document.createElement('div');
-      fields.className = `editor-fields${positionKey ? '' : ' name-only'}`;
-      fields.appendChild(createInput(nameKey, namePlaceholder));
-      if (positionKey) {
-        fields.appendChild(createInput(positionKey, positionPlaceholder));
-      }
-      fields.appendChild(createBadgeSelect(badgeKey));
-      item.appendChild(fields);
+      const view = document.createElement('div');
+      view.className = 'entry-view';
 
+      const nameEl = document.createElement('span');
+      nameEl.className = 'player-name';
+      view.appendChild(nameEl);
+
+      const editButton = document.createElement('button');
+      editButton.type = 'button';
+      editButton.className = 'edit-button';
+      editButton.textContent = '수정';
+      view.appendChild(editButton);
+      item.appendChild(view);
+
+      const editor = document.createElement('div');
+      editor.className = `entry-editor${keys.position ? '' : ' name-only'}`;
+      const rowChange = () => {
+        refreshRow(row);
+        onChange?.();
+      };
+      editor.appendChild(createInput(keys.name, namePlaceholder, rowChange));
+      if (keys.position) {
+        editor.appendChild(createInput(keys.position, positionPlaceholder, rowChange));
+      }
+      editor.appendChild(createStatusSelect(keys.status, rowChange));
+      item.appendChild(editor);
+
+      const row = { type, order, keys, item, nameEl, isEditing: false };
+      editor.addEventListener('focusin', () => {
+        row.isEditing = true;
+        refreshRow(row);
+      });
+      editButton.addEventListener('click', () => {
+        row.isEditing = true;
+        refreshRow(row);
+        editor.querySelector('input')?.focus();
+      });
+      editor.addEventListener('focusout', () => {
+        window.setTimeout(() => {
+          if (!editor.contains(document.activeElement)) {
+            row.isEditing = false;
+            refreshRow(row);
+          }
+        }, 0);
+      });
+
+      rows.push(row);
+      refreshRow(row);
       return item;
     };
 
@@ -704,10 +885,13 @@
 
       Array.from({ length: group.count }).forEach((_, slotIndex) => {
         const slotNo = slotIndex + 1;
-        groupEl.appendChild(createEditorRow({
+        groupEl.appendChild(createEditableRow({
+          type: 'pitcher',
           label: group.label,
-          nameKey: `pitcher-${groupIndex}-${slotIndex}-name`,
-          badgeKey: `pitcher-${groupIndex}-${slotIndex}-badge`,
+          keys: {
+            name: `pitcher-${groupIndex}-${slotIndex}-name`,
+            status: `pitcher-${groupIndex}-${slotIndex}-status`
+          },
           namePlaceholder: `${group.placeholder} ${slotNo}`
         }));
       });
@@ -715,56 +899,62 @@
       pitchingContainer.appendChild(groupEl);
     });
 
-    Object.keys(data.fieldDepth).forEach(pos => {
-      const box = document.querySelector(`#pos-${pos} .players`);
-      if (!box) return;
-
-      Array.from({ length: data.fieldDepth[pos] }).forEach((_, slotIndex) => {
-        const slot = document.createElement('div');
-        slot.className = 'field-slot';
-        slot.appendChild(createInput(`field-${pos}-${slotIndex}-name`, `${pos} ${slotIndex + 1}`));
-        slot.appendChild(createBadgeSelect(`field-${pos}-${slotIndex}-badge`));
-        box.appendChild(slot);
-      });
-    });
-
     const lineupContainer = document.getElementById('starting-lineup');
     Array.from({ length: data.lineupCount }).forEach((_, slotIndex) => {
       const order = slotIndex + 1;
-      lineupContainer.appendChild(createEditorRow({
+      lineupContainer.appendChild(createEditableRow({
+        type: 'lineup',
+        order,
         label: `${order}번`,
-        nameKey: `lineup-${slotIndex}-name`,
-        positionKey: `lineup-${slotIndex}-position`,
-        badgeKey: `lineup-${slotIndex}-badge`,
+        keys: {
+          name: `lineup-${slotIndex}-name`,
+          position: `lineup-${slotIndex}-position`,
+          status: `lineup-${slotIndex}-status`
+        },
         namePlaceholder: '선수 이름',
-        positionPlaceholder: '포지션'
+        positionPlaceholder: '포지션',
+        onChange: refreshLineupLinkedViews
       }));
     });
 
     const dhContainer = document.getElementById('dh-bench');
-    data.dhBench.forEach((group, groupIndex) => {
-      const groupEl = document.createElement('div');
-      groupEl.className = 'list-group';
 
-      const title = document.createElement('div');
-      title.className = 'list-title';
-      title.textContent = group.role;
-      groupEl.appendChild(title);
+    const dhGroup = document.createElement('div');
+    dhGroup.className = 'list-group';
+    const dhTitle = document.createElement('div');
+    dhTitle.className = 'list-title';
+    dhTitle.textContent = 'DH (지명타자)';
+    dhGroup.appendChild(dhTitle);
+    const dhAuto = document.createElement('div');
+    dhAuto.id = 'dh-auto';
+    dhGroup.appendChild(dhAuto);
+    dhContainer.appendChild(dhGroup);
 
-      Array.from({ length: group.count }).forEach((_, slotIndex) => {
-        const slotNo = slotIndex + 1;
-        groupEl.appendChild(createEditorRow({
-          label: group.label,
-          nameKey: `dh-bench-${groupIndex}-${slotIndex}-name`,
-          positionKey: `dh-bench-${groupIndex}-${slotIndex}-position`,
-          badgeKey: `dh-bench-${groupIndex}-${slotIndex}-badge`,
-          namePlaceholder: `${group.placeholder} ${slotNo}`,
-          positionPlaceholder: '포지션'
-        }));
-      });
+    const benchGroup = document.createElement('div');
+    benchGroup.className = 'list-group';
+    const benchTitle = document.createElement('div');
+    benchTitle.className = 'list-title';
+    benchTitle.textContent = 'Bench (벤치)';
+    benchGroup.appendChild(benchTitle);
 
-      dhContainer.appendChild(groupEl);
+    Array.from({ length: data.benchCount }).forEach((_, slotIndex) => {
+      const slotNo = slotIndex + 1;
+      benchGroup.appendChild(createEditableRow({
+        type: 'bench',
+        label: 'B',
+        keys: {
+          name: `bench-${slotIndex}-name`,
+          position: `bench-${slotIndex}-position`,
+          status: `bench-${slotIndex}-status`
+        },
+        namePlaceholder: `벤치 ${slotNo}`,
+        positionPlaceholder: '포지션'
+      }));
     });
+    dhContainer.appendChild(benchGroup);
+
+    refreshAllRows();
+    refreshLineupLinkedViews();
   </script>
 </body>
 </html>
