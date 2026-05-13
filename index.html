@@ -217,6 +217,95 @@
       line-height: 1;
     }
 
+
+
+    .resigned-badge {
+      display: inline-block;
+      background: #4dd4ff;
+      color: #00111a;
+      font-size: 0.6rem;
+      font-weight: 900;
+      padding: 2px 5px;
+      border-radius: 4px;
+      margin-right: 6px;
+      vertical-align: middle;
+      line-height: 1;
+    }
+
+    .editor-row {
+      align-items: stretch;
+    }
+
+    .editor-fields {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 78px 96px;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .editor-fields.name-only {
+      grid-template-columns: minmax(0, 1fr) 96px;
+    }
+
+    .editor-input,
+    .editor-select {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      outline: none;
+      padding: 8px 9px;
+      transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .editor-input::placeholder {
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+
+    .editor-input:focus,
+    .editor-select:focus {
+      border-color: rgba(234, 0, 41, 0.66);
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 0 0 3px rgba(234, 0, 41, 0.13);
+    }
+
+    .editor-select {
+      appearance: none;
+      color: var(--text-sub);
+      cursor: pointer;
+    }
+
+    .editor-select.is-new {
+      border-color: rgba(255, 204, 0, 0.65);
+      color: #ffcc00;
+    }
+
+    .editor-select.is-resigned {
+      border-color: rgba(77, 212, 255, 0.65);
+      color: #4dd4ff;
+    }
+
+    .field-slot {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 66px;
+      gap: 5px;
+      margin-bottom: 6px;
+    }
+
+    .field-slot .editor-input,
+    .field-slot .editor-select {
+      font-size: 0.72rem;
+      padding: 7px 7px;
+      border-radius: 8px;
+    }
+
     .field-panel {
       background:
         linear-gradient(180deg, rgba(10, 18, 28, 0.98) 0%, rgba(6, 20, 31, 0.98) 100%);
@@ -426,8 +515,17 @@
       }
 
       .pos-box {
-        width: 96px;
+        width: 112px;
         padding: 8px;
+      }
+
+      .editor-fields,
+      .editor-fields.name-only {
+        grid-template-columns: 1fr;
+      }
+
+      .field-slot {
+        grid-template-columns: 1fr;
       }
 
       .depth-player {
@@ -496,45 +594,106 @@
   </div>
 
   <script>
+    const STORAGE_KEY = 'kia-tigers-2080-lineup-editor';
+
     const data = {
       pitchers: [
-        { role: "SP (선발)", names: ["이시연", "레제", "용병", "용병"] },
-        { role: "LR (롱릴리프)", names: ["배찬승", "김진성"] },
-        { role: "MR (미들릴리프)", names: ["타마마", "이승호", "용병", "용병"] },
-        { role: "SU (셋업)", names: ["김광현"] },
-        { role: "CL (마무리)", names: ["이도훈"] }
+        { role: "SP (선발)", count: 4, label: "P", placeholder: "선발" },
+        { role: "LR (롱릴리프)", count: 2, label: "P", placeholder: "롱릴리프" },
+        { role: "MR (미들릴리프)", count: 4, label: "P", placeholder: "미들릴리프" },
+        { role: "SU (셋업)", count: 1, label: "P", placeholder: "셋업" },
+        { role: "CL (마무리)", count: 1, label: "P", placeholder: "마무리" }
       ],
       fieldDepth: {
-        "C": ["양의지", "박영환"],
-        "1B": ["오레오"],
-        "2B": ["홍현우"],
-        "3B": ["아카네"],
-        "SS": ["구준", "전민재"],
-        "LF": ["전의산", "이명기"],
-        "CF": ["임선우", "마린"],
-        "RF": ["용병"]
+        "C": 2,
+        "1B": 2,
+        "2B": 2,
+        "3B": 2,
+        "SS": 2,
+        "LF": 2,
+        "CF": 2,
+        "RF": 2
       },
       dhBench: [
-        { role: "DH (지명타자)", names: ["바이퍼"] }
+        { role: "DH (지명타자)", count: 1, label: "DH", placeholder: "지명타자" },
+        { role: "Bench (벤치)", count: 8, label: "B", placeholder: "벤치" }
       ],
-      lineup: [
-        { order: 1, name: "홍현우", pos: "2B" },
-        { order: 2, name: "아카네", pos: "3B" },
-        { order: 3, name: "임선우", pos: "CF" },
-        { order: 4, name: "오레오", pos: "1B" },
-        { order: 5, name: "전의산", pos: "LF" },
-        { order: 6, name: "용병", pos: "RF" },
-        { order: 7, name: "구준", pos: "SS" },
-        { order: 8, name: "양의지", pos: "C" },
-        { order: 9, name: "바이퍼", pos: "DH" }
-      ]
+      lineupCount: 9
     };
 
-    // 신규 영입 선수 목록 (이번에는 홍현우를 추가하고 기존 아카네를 유지했습니다)
-    const newSignings = ["홍현우", "아카네"];
+    const badgeOptions = [
+      { value: '', label: '딱지 없음' },
+      { value: 'new', label: 'NEW' },
+      { value: 'resigned', label: 'RE-SIGNED' }
+    ];
+
+    const savedState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+
+    const saveValue = (key, value) => {
+      savedState[key] = value;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedState));
+    };
+
+    const createInput = (key, placeholder) => {
+      const input = document.createElement('input');
+      input.className = 'editor-input';
+      input.type = 'text';
+      input.placeholder = placeholder;
+      input.autocomplete = 'off';
+      input.value = savedState[key] || '';
+      input.addEventListener('input', event => saveValue(key, event.target.value));
+      return input;
+    };
+
+    const updateBadgeSelectClass = select => {
+      select.classList.toggle('is-new', select.value === 'new');
+      select.classList.toggle('is-resigned', select.value === 'resigned');
+    };
+
+    const createBadgeSelect = key => {
+      const select = document.createElement('select');
+      select.className = 'editor-select';
+      select.setAttribute('aria-label', '선수 상태 딱지');
+
+      badgeOptions.forEach(option => {
+        const optionEl = document.createElement('option');
+        optionEl.value = option.value;
+        optionEl.textContent = option.label;
+        select.appendChild(optionEl);
+      });
+
+      select.value = savedState[key] || '';
+      updateBadgeSelectClass(select);
+      select.addEventListener('change', event => {
+        saveValue(key, event.target.value);
+        updateBadgeSelectClass(select);
+      });
+      return select;
+    };
+
+    const createEditorRow = ({ label, nameKey, badgeKey, positionKey, namePlaceholder, positionPlaceholder }) => {
+      const item = document.createElement('div');
+      item.className = 'player-item editor-row';
+
+      const labelEl = document.createElement('span');
+      labelEl.className = 'player-pos';
+      labelEl.textContent = label;
+      item.appendChild(labelEl);
+
+      const fields = document.createElement('div');
+      fields.className = `editor-fields${positionKey ? '' : ' name-only'}`;
+      fields.appendChild(createInput(nameKey, namePlaceholder));
+      if (positionKey) {
+        fields.appendChild(createInput(positionKey, positionPlaceholder));
+      }
+      fields.appendChild(createBadgeSelect(badgeKey));
+      item.appendChild(fields);
+
+      return item;
+    };
 
     const pitchingContainer = document.getElementById('pitching-staff');
-    data.pitchers.forEach(group => {
+    data.pitchers.forEach((group, groupIndex) => {
       const groupEl = document.createElement('div');
       groupEl.className = 'list-group';
 
@@ -543,16 +702,14 @@
       title.textContent = group.role;
       groupEl.appendChild(title);
 
-      group.names.forEach(name => {
-        const item = document.createElement('div');
-        item.className = 'player-item';
-        const newTag = newSignings.includes(name) ? '<span class="new-badge">NEW</span>' : '';
-        
-        item.innerHTML = `
-          <span class="player-pos">P</span>
-          <span class="player-name">${newTag}${name}</span>
-        `;
-        groupEl.appendChild(item);
+      Array.from({ length: group.count }).forEach((_, slotIndex) => {
+        const slotNo = slotIndex + 1;
+        groupEl.appendChild(createEditorRow({
+          label: group.label,
+          nameKey: `pitcher-${groupIndex}-${slotIndex}-name`,
+          badgeKey: `pitcher-${groupIndex}-${slotIndex}-badge`,
+          namePlaceholder: `${group.placeholder} ${slotNo}`
+        }));
       });
 
       pitchingContainer.appendChild(groupEl);
@@ -561,26 +718,31 @@
     Object.keys(data.fieldDepth).forEach(pos => {
       const box = document.querySelector(`#pos-${pos} .players`);
       if (!box) return;
-      box.innerHTML = data.fieldDepth[pos]
-        .map(name => {
-          const newTag = newSignings.includes(name) ? '<span class="new-badge">NEW</span>' : '';
-          return `<div class="depth-player">${newTag}${name}</div>`;
-        })
-        .join('');
+
+      Array.from({ length: data.fieldDepth[pos] }).forEach((_, slotIndex) => {
+        const slot = document.createElement('div');
+        slot.className = 'field-slot';
+        slot.appendChild(createInput(`field-${pos}-${slotIndex}-name`, `${pos} ${slotIndex + 1}`));
+        slot.appendChild(createBadgeSelect(`field-${pos}-${slotIndex}-badge`));
+        box.appendChild(slot);
+      });
     });
 
     const lineupContainer = document.getElementById('starting-lineup');
-    lineupContainer.innerHTML = data.lineup.map(player => {
-      const newTag = newSignings.includes(player.name) ? '<span class="new-badge">NEW</span>' : '';
-      return `
-      <div class="player-item">
-        <span class="player-pos">${player.order}번</span>
-        <span class="player-name">${newTag}${player.name}<span class="sub-pos">(${player.pos})</span></span>
-      </div>
-    `}).join('');
+    Array.from({ length: data.lineupCount }).forEach((_, slotIndex) => {
+      const order = slotIndex + 1;
+      lineupContainer.appendChild(createEditorRow({
+        label: `${order}번`,
+        nameKey: `lineup-${slotIndex}-name`,
+        positionKey: `lineup-${slotIndex}-position`,
+        badgeKey: `lineup-${slotIndex}-badge`,
+        namePlaceholder: '선수 이름',
+        positionPlaceholder: '포지션'
+      }));
+    });
 
     const dhContainer = document.getElementById('dh-bench');
-    data.dhBench.forEach(group => {
+    data.dhBench.forEach((group, groupIndex) => {
       const groupEl = document.createElement('div');
       groupEl.className = 'list-group';
 
@@ -589,13 +751,16 @@
       title.textContent = group.role;
       groupEl.appendChild(title);
 
-      group.names.forEach(name => {
-        const item = document.createElement('div');
-        item.className = 'player-item';
-        const newTag = newSignings.includes(name) ? '<span class="new-badge">NEW</span>' : '';
-        
-        item.innerHTML = `<span class="player-name" style="text-align:left;">${newTag}${name}</span>`;
-        groupEl.appendChild(item);
+      Array.from({ length: group.count }).forEach((_, slotIndex) => {
+        const slotNo = slotIndex + 1;
+        groupEl.appendChild(createEditorRow({
+          label: group.label,
+          nameKey: `dh-bench-${groupIndex}-${slotIndex}-name`,
+          positionKey: `dh-bench-${groupIndex}-${slotIndex}-position`,
+          badgeKey: `dh-bench-${groupIndex}-${slotIndex}-badge`,
+          namePlaceholder: `${group.placeholder} ${slotNo}`,
+          positionPlaceholder: '포지션'
+        }));
       });
 
       dhContainer.appendChild(groupEl);
