@@ -261,6 +261,11 @@
       grid-template-columns: minmax(0, 1fr) 108px;
     }
 
+    .panel .entry-editor,
+    .panel .entry-editor.name-only {
+      grid-template-columns: 1fr;
+    }
+
     .editor-input,
     .editor-select,
     .edit-button {
@@ -649,6 +654,7 @@
 
     const savedState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     const rows = [];
+
     const saveValue = (key, value) => {
       savedState[key] = value;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(savedState));
