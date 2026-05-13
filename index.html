@@ -649,7 +649,6 @@
 
     const savedState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     const rows = [];
-
     const saveValue = (key, value) => {
       savedState[key] = value;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(savedState));
