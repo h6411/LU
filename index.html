@@ -270,107 +270,6 @@
       color: #00111a;
     }
 
-    .editable-row {
-      align-items: stretch;
-    }
-
-    .editable-row.is-editing .entry-view,
-    .editable-row:not(.is-editing) .entry-editor {
-      display: none;
-    }
-
-    .entry-view {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .entry-editor {
-      flex: 1;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 78px 108px;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .entry-editor.name-only {
-      grid-template-columns: minmax(0, 1fr) 108px;
-    }
-
-    .panel .entry-editor,
-    .panel .entry-editor.name-only {
-      grid-template-columns: 1fr;
-    }
-
-    .editor-input,
-    .editor-select,
-    .edit-button {
-      width: 100%;
-      min-width: 0;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--text-main);
-      font: inherit;
-      font-size: 0.78rem;
-      font-weight: 700;
-      outline: none;
-      padding: 8px 9px;
-      transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-    }
-
-    .editor-input::placeholder {
-      color: var(--text-dim);
-      font-weight: 600;
-    }
-
-    .editor-input:focus,
-    .editor-select:focus,
-    .edit-button:focus {
-      border-color: rgba(234, 0, 41, 0.66);
-      background: rgba(255, 255, 255, 0.1);
-      box-shadow: 0 0 0 3px rgba(234, 0, 41, 0.13);
-    }
-
-    .editor-select {
-      appearance: none;
-      color: var(--text-sub);
-      cursor: pointer;
-    }
-
-    .editor-select.is-new {
-      border-color: rgba(255, 204, 0, 0.65);
-      color: #ffcc00;
-    }
-
-    .editor-select.is-resigned {
-      border-color: rgba(77, 212, 255, 0.65);
-      color: #4dd4ff;
-    }
-
-    .edit-button {
-      flex: 0 0 auto;
-      width: auto;
-      color: var(--text-dim);
-      font-size: 0.72rem;
-      padding: 6px 8px;
-      cursor: pointer;
-    }
-
-    .edit-button:hover {
-      color: var(--white);
-      border-color: rgba(234, 0, 41, 0.42);
-    }
-
-    .empty-slot {
-      color: var(--text-dim);
-      font-size: 0.78rem;
-      font-weight: 600;
-      line-height: 1.25;
-    }
-
     .field-panel {
       background:
         linear-gradient(180deg, rgba(10, 18, 28, 0.98) 0%, rgba(6, 20, 31, 0.98) 100%);
@@ -697,21 +596,78 @@
 
     const data = {
       pitchers: [
-        { role: "SP (선발)", count: 4, label: "P", placeholder: "선발" },
-        { role: "LR (롱릴리프)", count: 2, label: "P", placeholder: "롱릴리프" },
-        { role: "MR (미들릴리프)", count: 4, label: "P", placeholder: "미들릴리프" },
-        { role: "SU (셋업)", count: 1, label: "P", placeholder: "셋업" },
-        { role: "CL (마무리)", count: 1, label: "P", placeholder: "마무리" }
+        { role: "SP (선발)", names: ["이시연", "레제", "용병", "용병"] },
+        { role: "LR (롱릴리프)", names: ["배찬승", "김진성"] },
+        { role: "MR (미들릴리프)", names: ["타마마", "이승호", "용병", "용병"] },
+        { role: "SU (셋업)", names: ["김광현"] },
+        { role: "CL (마무리)", names: ["이도훈"] }
+      ],
+      fieldDepth: {
+        "C": ["양의지", "박영환"],
+        "1B": ["오레오"],
+        "2B": ["홍현우"],
+        "3B": ["아카네"],
+        "SS": ["구준", "전민재"],
+        "LF": ["전의산", "이명기"],
+        "CF": ["임선우", "마린"],
+        "RF": ["용병"]
+      },
+      dhBench: [
+        { role: "DH (지명타자)", players: [{ name: "바이퍼", pos: "DH" }] }
       ],
       lineupCount: 9,
       benchCount: 5
     };
 
-    const statusOptions = [
-      { value: '', label: '상태 없음' },
-      { value: 'new', label: 'NEW' },
-      { value: 'resigned', label: 'RE-SIGNED' }
-    ];
+    const playerStatuses = {
+      new: ["홍현우", "아카네"],
+      resigned: []
+    };
+
+    const getPlayerStatus = name => {
+      if (playerStatuses.new.includes(name)) return 'new';
+      if (playerStatuses.resigned.includes(name)) return 'resigned';
+      return '';
+    };
+
+    const createStatusBadge = status => {
+      if (!status) return null;
+      const badge = document.createElement('span');
+      badge.className = status === 'new' ? 'new-badge' : 'resigned-badge';
+      badge.textContent = status === 'new' ? 'NEW' : 'RE-SIGNED';
+      return badge;
+    };
+
+    const appendPlayerText = (container, name, pos = '') => {
+      const badge = createStatusBadge(getPlayerStatus(name));
+      if (badge) container.appendChild(badge);
+      container.append(name);
+      if (pos) {
+        const posEl = document.createElement('span');
+        posEl.className = 'sub-pos';
+        posEl.textContent = `(${pos})`;
+        container.appendChild(posEl);
+      }
+    };
+
+    const createPlayerItem = ({ label, name, pos = '', align = 'right' }) => {
+      const item = document.createElement('div');
+      item.className = 'player-item';
+
+      if (label) {
+        const labelEl = document.createElement('span');
+        labelEl.className = 'player-pos';
+        labelEl.textContent = label;
+        item.appendChild(labelEl);
+      }
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'player-name';
+      nameEl.style.textAlign = align;
+      appendPlayerText(nameEl, name, pos);
+      item.appendChild(nameEl);
+      return item;
+    };
 
     const savedState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     const rows = [];
@@ -721,22 +677,8 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(savedState));
     };
 
-    const normalizePosition = value => {
-      const trimmed = value.trim();
-      const upper = trimmed.toUpperCase();
-      return POSITION_ALIASES[trimmed] || upper;
-    };
-
-    const createInput = (key, placeholder, onChange) => {
-      const input = document.createElement('input');
-      input.className = 'editor-input';
-      input.type = 'text';
-      input.placeholder = placeholder;
-      input.autocomplete = 'off';
-      input.value = savedState[key] || '';
-      input.addEventListener('input', event => {
-        saveValue(key, event.target.value);
-        onChange?.();
+      group.names.forEach(name => {
+        groupEl.appendChild(createPlayerItem({ label: 'P', name }));
       });
       return input;
     };
@@ -758,43 +700,27 @@
         select.appendChild(optionEl);
       });
 
-      select.value = savedState[key] || '';
-      updateStatusSelectClass(select);
-      select.addEventListener('change', event => {
-        saveValue(key, event.target.value);
-        updateStatusSelectClass(select);
-        onChange?.();
+    Object.entries(data.fieldDepth).forEach(([pos, players]) => {
+      const box = document.querySelector(`#pos-${pos} .players`);
+      if (!box) return;
+      box.textContent = '';
+
+      players.forEach((name, index) => {
+        const item = document.createElement('div');
+        item.className = `depth-player ${index === 0 ? 'starter-depth' : 'bench-depth'}`;
+        appendPlayerText(item, name);
+        box.appendChild(item);
       });
-      return select;
-    };
-
-    const createStatusBadge = status => {
-      if (!status) return null;
-
-      const badge = document.createElement('span');
-      badge.className = status === 'new' ? 'new-badge' : 'resigned-badge';
-      badge.textContent = status === 'new' ? 'NEW' : 'RE-SIGNED';
-      return badge;
-    };
-
-    const getRowValues = keys => ({
-      name: (savedState[keys.name] || '').trim(),
-      position: keys.position ? (savedState[keys.position] || '').trim() : '',
-      status: savedState[keys.status] || ''
     });
 
-    const fillPlayerName = (container, values) => {
-      container.textContent = '';
-      const badge = createStatusBadge(values.status);
-      if (badge) container.appendChild(badge);
-      container.append(values.name);
-      if (values.position) {
-        const pos = document.createElement('span');
-        pos.className = 'sub-pos';
-        pos.textContent = `(${values.position})`;
-        container.appendChild(pos);
-      }
-    };
+    const lineupContainer = document.getElementById('starting-lineup');
+    data.lineup.forEach(player => {
+      lineupContainer.appendChild(createPlayerItem({
+        label: `${player.order}번`,
+        name: player.name,
+        pos: player.pos
+      }));
+    });
 
     const refreshRow = row => {
       const values = getRowValues(row.keys);
@@ -868,73 +794,12 @@
         return;
       }
 
-      dhPlayers.forEach(player => {
-        const item = document.createElement('div');
-        item.className = 'player-item';
-
-        const label = document.createElement('span');
-        label.className = 'player-pos';
-        label.textContent = 'DH';
-        item.appendChild(label);
-
-        const name = document.createElement('span');
-        name.className = 'player-name';
-        fillPlayerName(name, player);
-        item.appendChild(name);
-        dhContainer.appendChild(item);
-      });
-    };
-
-    const refreshLineupLinkedViews = () => {
-      refreshFieldFromLineup();
-      refreshDhFromLineup();
-    };
-
-    const createEditableRow = ({ type, label, order, keys, namePlaceholder, positionPlaceholder, onChange }) => {
-      const item = document.createElement('div');
-      item.className = 'player-item editable-row';
-
-      const labelEl = document.createElement('span');
-      labelEl.className = 'player-pos';
-      labelEl.textContent = label;
-      item.appendChild(labelEl);
-
-      const view = document.createElement('div');
-      view.className = 'entry-view';
-
-      const nameEl = document.createElement('span');
-      nameEl.className = 'player-name';
-      view.appendChild(nameEl);
-
-      const editButton = document.createElement('button');
-      editButton.type = 'button';
-      editButton.className = 'edit-button';
-      editButton.textContent = '수정';
-      view.appendChild(editButton);
-      item.appendChild(view);
-
-      const editor = document.createElement('div');
-      editor.className = `entry-editor${keys.position ? '' : ' name-only'}`;
-      const rowChange = () => {
-        refreshRow(row);
-        onChange?.();
-      };
-      editor.appendChild(createInput(keys.name, namePlaceholder, rowChange));
-      if (keys.position) {
-        editor.appendChild(createInput(keys.position, positionPlaceholder, rowChange));
-      }
-      editor.appendChild(createStatusSelect(keys.status, rowChange));
-      item.appendChild(editor);
-
-      const row = { type, order, keys, item, nameEl, isEditing: false };
-      editor.addEventListener('focusin', () => {
-        row.isEditing = true;
-        refreshRow(row);
-      });
-      editButton.addEventListener('click', () => {
-        row.isEditing = true;
-        refreshRow(row);
-        editor.querySelector('input')?.focus();
+      group.players.forEach(player => {
+        groupEl.appendChild(createPlayerItem({
+          name: player.name,
+          pos: player.pos,
+          align: 'left'
+        }));
       });
       editor.addEventListener('focusout', () => {
         window.setTimeout(() => {
