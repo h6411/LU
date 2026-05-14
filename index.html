@@ -799,7 +799,6 @@
     const refreshRow = row => {
       const values = getRowValues(row.keys);
       const isComplete = values.name && (!row.keys.position || values.position);
-      row.item.classList.toggle('is-empty', !isComplete);
       row.item.classList.toggle('is-editing', row.isEditing || !isComplete);
       if (!isComplete) return;
       fillPlayerName(row.nameEl, values);
@@ -956,66 +955,40 @@
       const groupEl = document.createElement('div');
       groupEl.className = 'list-group';
 
-    const saveValue = (key, value) => {
-      savedState[key] = value;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedState));
-    };
+    const dhGroup = document.createElement('div');
+    dhGroup.className = 'list-group';
+    const dhTitle = document.createElement('div');
+    dhTitle.className = 'list-title';
+    dhTitle.textContent = 'DH (지명타자)';
+    dhGroup.appendChild(dhTitle);
+    const dhAuto = document.createElement('div');
+    dhAuto.id = 'dh-auto';
+    dhGroup.appendChild(dhAuto);
+    dhContainer.appendChild(dhGroup);
 
-    const normalizePosition = value => {
-      const trimmed = value.trim();
-      const upper = trimmed.toUpperCase();
-      return POSITION_ALIASES[trimmed] || upper;
-    };
+    const benchGroup = document.createElement('div');
+    benchGroup.className = 'list-group';
+    const benchTitle = document.createElement('div');
+    benchTitle.className = 'list-title';
+    benchTitle.textContent = 'Bench (벤치)';
+    benchGroup.appendChild(benchTitle);
 
-    const createInput = (key, placeholder, onChange) => {
-      const input = document.createElement('input');
-      input.className = 'editor-input';
-      input.type = 'text';
-      input.placeholder = placeholder;
-      input.autocomplete = 'off';
-      input.value = savedState[key] || '';
-      input.addEventListener('input', event => {
-        saveValue(key, event.target.value);
-        onChange?.();
-      });
-      return input;
-    };
-
-    const updateStatusSelectClass = select => {
-      select.classList.toggle('is-new', select.value === 'new');
-      select.classList.toggle('is-resigned', select.value === 'resigned');
-    };
-
-    const createStatusSelect = (key, onChange) => {
-      const select = document.createElement('select');
-      select.className = 'editor-select';
-      select.setAttribute('aria-label', '선수 상태');
-
-      statusOptions.forEach(option => {
-        const optionEl = document.createElement('option');
-        optionEl.value = option.value;
-        optionEl.textContent = option.label;
-        select.appendChild(optionEl);
-      });
-
-      select.value = savedState[key] || '';
-      updateStatusSelectClass(select);
-      select.addEventListener('change', event => {
-        saveValue(key, event.target.value);
-        updateStatusSelectClass(select);
-        onChange?.();
-      });
-      return select;
-    };
-
-    const createStatusBadge = status => {
-      if (!status) return null;
-
-      const badge = document.createElement('span');
-      badge.className = status === 'new' ? 'new-badge' : 'resigned-badge';
-      badge.textContent = status === 'new' ? 'NEW' : 'RE-SIGNED';
-      return badge;
-    };
+    Array.from({ length: data.benchCount }).forEach((_, slotIndex) => {
+      const slotNo = slotIndex + 1;
+      benchGroup.appendChild(createEditableRow({
+        type: 'bench',
+        label: 'B',
+        keys: {
+          name: `bench-${slotIndex}-name`,
+          position: `bench-${slotIndex}-position`,
+          status: `bench-${slotIndex}-status`
+        },
+        namePlaceholder: `벤치 ${slotNo}`,
+        positionPlaceholder: '포지션',
+        onChange: refreshLineupLinkedViews
+      }));
+    });
+    dhContainer.appendChild(benchGroup);
 
       Array.from({ length: group.count }).forEach((_, slotIndex) => {
         const slotNo = slotIndex + 1;
@@ -1031,10 +1004,8 @@
       });
     };
 
-    const refreshLineupLinkedViews = () => {
-      refreshFieldFromLineup();
-      refreshDhFromLineup();
-    };
+      pitchingContainer.appendChild(groupEl);
+    });
 
     const lineupContainer = document.getElementById('starting-lineup');
     Array.from({ length: data.lineupCount }).forEach((_, slotIndex) => {
@@ -1090,89 +1061,6 @@
       }));
     });
     dhContainer.appendChild(benchGroup);
-
-    const collapseAllRows = () => {
-      rows.forEach(row => {
-        row.isEditing = false;
-        refreshRow(row);
-      });
-    };
-
-    const waitForCaptureFrame = () => new Promise(resolve => {
-      requestAnimationFrame(() => requestAnimationFrame(resolve));
-    });
-
-    const renderDashboardToCanvas = dashboard => new Promise((resolve, reject) => {
-      const width = Math.ceil(dashboard.scrollWidth);
-      const height = Math.ceil(dashboard.scrollHeight);
-      const scale = Math.max(2, window.devicePixelRatio || 1);
-      const clone = dashboard.cloneNode(true);
-      clone.querySelectorAll('.capture-hide, .edit-button, .entry-editor, .editable-row.is-empty')
-        .forEach(element => element.remove());
-      clone.style.width = `${width}px`;
-      clone.style.maxWidth = `${width}px`;
-      clone.style.margin = '0';
-
-      const styleText = document.querySelector('style')?.textContent || '';
-      const markup = `
-        <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px; min-height:${height}px; background: radial-gradient(circle at top, rgba(234, 0, 41, 0.18), transparent 30%), linear-gradient(180deg, #0d1722 0%, #081018 100%);">
-          <style>${styleText}</style>
-          ${clone.outerHTML}
-        </div>
-      `;
-      const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-          <foreignObject width="100%" height="100%">${markup}</foreignObject>
-        </svg>
-      `;
-
-      const image = new Image();
-      const svgUrl = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
-      image.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = width * scale;
-        canvas.height = height * scale;
-        const context = canvas.getContext('2d');
-        context.scale(scale, scale);
-        context.fillStyle = '#081018';
-        context.fillRect(0, 0, width, height);
-        context.drawImage(image, 0, 0, width, height);
-        URL.revokeObjectURL(svgUrl);
-        resolve(canvas);
-      };
-      image.onerror = error => {
-        URL.revokeObjectURL(svgUrl);
-        reject(error);
-      };
-      image.src = svgUrl;
-    });
-
-    const downloadDashboardImage = async () => {
-      const dashboard = document.querySelector('.dashboard-container');
-      const downloadButton = document.getElementById('download-image');
-      if (!dashboard || !downloadButton) return;
-
-      collapseAllRows();
-      refreshLineupLinkedViews();
-      document.body.classList.add('capture-mode');
-      downloadButton.disabled = true;
-      downloadButton.textContent = '이미지 생성 중...';
-
-      try {
-        await waitForCaptureFrame();
-        const canvas = await renderDashboardToCanvas(dashboard);
-        const link = document.createElement('a');
-        link.download = 'kia-tigers-2080-lineup.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-      } finally {
-        document.body.classList.remove('capture-mode');
-        downloadButton.disabled = false;
-        downloadButton.textContent = '이미지 저장';
-      }
-    };
-
-    document.getElementById('download-image')?.addEventListener('click', downloadDashboardImage);
 
     refreshAllRows();
     refreshLineupLinkedViews();
